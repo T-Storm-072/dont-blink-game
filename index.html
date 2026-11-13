@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DON'T BLINK — The 1% Reflex Trap</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;900&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Game Styles & Animations */
+        :root {
+            --bg-dark: #09090b;
+            --accent-red: #ef4444;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+        }
+
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--bg-dark);
+            color: #fafafa;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Screen Shake Effect for Rage / Lose / Fake-out */
+        @keyframes screenShake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            15% { transform: translate(-8px, 6px) rotate(-1deg); }
+            30% { transform: translate(8px, -6px) rotate(1deg); }
+            45% { transform: translate(-6px, -4px) rotate(-0.5deg); }
+            60% { transform: translate(6px, 4px) rotate(0.5deg); }
+            75% { transform: translate(-4px, 2px) rotate(0deg); }
+        }
+
+        .shake {
+            animation: screenShake 0.35s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* Subtle Micro Shake for Tension */
+        @keyframes microShake {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-2px, 1px); }
+            50% { transform: translate(2px, -1px); }
+            75% { transform: translate(-1px, -2px); }
+        }
+
+        .tension-shake {
+            animation: microShake 0.12s infinite;
+        }
+
+        /* Hold Button Pulse & Glow */
+        .hold-btn {
+            transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background-color 0.15s ease;
+            box-shadow: 0 0 40px rgba(239, 68, 68, 0.25), inset 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .hold-btn:active, .hold-btn.holding {
+            transform: scale(0.92);
+            box-shadow: 0 0 65px rgba(239, 68, 68, 0.6), inset 0 0 30px rgba(255, 255, 255, 0.25);
+        }
+
+        .hold-btn.go-signal {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            box-shadow: 0 0 80px rgba(16, 185, 129, 0.85), inset 0 0 30px rgba(255, 255, 255, 0.4) !important;
+            transform: scale(1.04);
+        }
+
+        /* Crawling Bug Distraction Animation */
+        @keyframes bugCrawl {
+            0% { transform: translate(-120px, 120px) rotate(45deg); opacity: 0; }
+            15% { opacity: 1; }
+            50% { transform: translate(40px, -20px) rotate(25deg); }
+            85% { opacity: 1; }
+            100% { transform: translate(180px, -140px) rotate(60deg); opacity: 0; }
+        }
+
+        .bug-active {
+            animation: bugCrawl 1.8s linear forwards;
+        }
+
+        /* Fake iOS/Android Low Battery Popup */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .fake-modal-pop {
+            animation: popIn 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Radial Grid Background */
+        .bg-grid {
+            background-size: 36px 36px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+    </style>
+</head>
+<body class="bg-grid min-h-screen w-full flex flex-col justify-between items-center p-4 sm:p-6 relative">
+
+    <!-- Flash Overlay for Deceptive Screen Flashes -->
+    <div id="flashOverlay" class="fixed inset-0 pointer-events-none opacity-0 transition-opacity duration-75 z-10"></div>
+
+    <!-- Distraction 1: Crawling Fly/Bug -->
+    <div id="bugDistraction" class="fixed top-1/2 left-1/2 pointer-events-none opacity-0 z-30 text-3xl sm:text-4xl">
+        🪰
+    </div>
+
+    <!-- Distraction 2: Fake Low Battery Alert -->
+    <div id="batteryDistraction" class="hidden fixed inset-0 z-30 pointer-events-none flex items-center justify-center px-6">
+        <div class="fake-modal-pop bg-zinc-800/95 border border-zinc-600 rounded-2xl p-5 max-w-xs w-full text-center shadow-2xl backdrop-blur-md">
+            <div class="text-red-500 font-bold text-lg mb-1">Low Battery</div>
+            <p class="text-zinc-300 text-xs mb-4">20% of battery remaining</p>
+            <div class="border-t border-zinc-700 pt-2.5 text-blue-400 font-semibold text-sm">Close</div>
+        </div>
+    </div>
+
+    <!-- TOP HUD: Streak & Controls -->
+    <header class="w-full max-w-lg flex items-center justify-between gap-2 z-20">
+        <!-- Streak Counters -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl px-3.5 py-2 flex flex-col">
+                <span class="text-[10px] uppercase tracking-wider text-zinc-400 font-bold">Streak</span>
+                <span id="streakDisplay" class="mono text-xl sm:text-2xl font-extrabold text-white leading-none mt-0.5">0</span>
+            </div>
+            <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl px-3.5 py-2 flex flex-col">
+                <span class="text-[10px] uppercase tracking-wider text-amber-400/80 font-bold">Best</span>
+                <span id="bestDisplay" class="mono text-xl sm:text-2xl font-extrabold text-amber-400 leading-none mt-0.5">0</span>
+            </div>
+            <div class="bg-zinc-900/90 border border-zinc-800 rounded-2xl px-3 py-2 flex flex-col max-w-[110px] sm:max-w-[140px]">
+                <span class="text-[10px] uppercase tracking-wider text-emerald-400/80 font-bold">Player</span>
+                <span id="hudPlayerName" class="mono text-xs sm:text-sm font-extrabold text-emerald-300 leading-none mt-1 truncate">---</span>
+            </div>
+        </div>
+
+        <!-- Action Buttons & Sound Toggle -->
+        <div class="flex items-center gap-2">
+            <button id="shareTopBtn" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 border border-zinc-700 text-zinc-200 rounded-2xl p-3 transition flex items-center gap-1.5 text-xs font-bold" title="Challenge a Friend">
+                <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                <span class="hidden xs:inline">Challenge</span>
+            </button>
+
+            <button id="leaderboardTopBtn" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 border border-amber-500/40 text-amber-300 rounded-2xl p-3 transition flex items-center gap-1.5 text-xs font-bold" title="Global Hall of Fame">
+                <span>🏆</span>
+                <span class="hidden sm:inline">Top 1%</span>
+            </button>
+
+            <button id="muteBtn" class="bg-zinc-900 hover:bg-zinc-800 active:scale-95 border border-zinc-700 text-zinc-200 rounded-2xl p-3 transition" aria-label="Toggle Sound" title="Toggle Music & SFX">
+                <svg id="soundOnIcon" class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                <svg id="soundOffIcon" class="w-4 h-4 text-zinc-500 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- CENTER STAGE: Command Display & Hold Button -->
+    <main id="gameStage" class="w-full max-w-lg flex-1 flex flex-col items-center justify-center gap-6 sm:gap-8 my-2 z-20">
+        
+        <!-- Title & Rule Pill -->
+        <div class="text-center space-y-1.5">
+            <div class="inline-flex items-center gap-2 bg-zinc-900/90 border border-zinc-800 px-3 py-1 rounded-full">
+                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                <span id="windowBadge" class="mono text-[11px] font-bold text-zinc-300 tracking-wide">WINDOW: 400ms</span>
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-white">DON'T BLINK</h1>
+            <p id="subInstruction" class="text-zinc-400 text-xs sm:text-sm max-w-xs mx-auto">
+                Hold the button. Release <span class="text-emerald-400 font-bold">ONLY</span> when you see exact <span class="mono bg-zinc-800 text-white px-1.5 py-0.5 rounded font-bold">STOP</span>.
+            </p>
+        </div>
+
+        <!-- Dynamic Signal / Trap Display Box -->
+        <div id="signalBox" class="w-full h-32 sm:h-36 bg-zinc-900/80 border-2 border-zinc-800 rounded-3xl flex flex-col items-center justify-center px-4 relative overflow-hidden shadow-inner">
+            <span id="signalSub" class="mono text-[11px] uppercase tracking-widest text-zinc-500 mb-1">STATUS: READY</span>
+            <div id="signalWord" class="text-4xl sm:text-6xl font-black tracking-wider text-zinc-500 transition-transform duration-75 text-center">
+                HOLD BELOW
+            </div>
+            <!-- Reaction Time Badge after Win -->
+            <div id="reactionBadge" class="hidden mt-2 mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                214ms — INSANE!
+            </div>
+        </div>
+
+        <!-- The Main Interactive Hold Button -->
+        <div class="relative flex items-center justify-center">
+            <button id="holdButton" class="hold-btn w-44 h-44 sm:w-52 sm:h-52 rounded-full bg-gradient-to-br from-rose-500 to-red-700 border-4 border-rose-300/30 flex flex-col items-center justify-center cursor-pointer focus:outline-none">
+                <span id="btnMainText" class="text-xl sm:text-2xl font-black tracking-wider text-white pointer-events-none">PRESS & HOLD</span>
+                <span id="btnSubText" class="mono text-[11px] text-rose-100/80 mt-1 pointer-events-none">DON'T LET GO</span>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- BOTTOM FOOTER: Psychological Warning / Viral Hook -->
+    <footer class="w-full max-w-lg text-center z-20 pb-1 space-y-1">
+        <div id="liveStatPill" class="inline-flex items-center gap-2 bg-zinc-900/90 border border-zinc-800 px-3 py-1 rounded-full">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+            <span id="globalPercentText" class="mono text-[11px] text-zinc-300 font-semibold">
+                Only <span class="text-amber-400 font-extrabold">1.4%</span> of 500 global runs reached Streak 5
+            </span>
+        </div>
+        <p id="footerTip" class="text-[11px] text-zinc-500 font-medium">
+            Watch out for fake words & system popups.
+        </p>
+    </footer>
+
+    <!-- WELCOME PLAYER IDENTIFICATION MODAL (Required Before Starting) -->
+    <div id="welcomeNameModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="fake-modal-pop bg-zinc-900 border-2 border-zinc-700 rounded-3xl max-w-sm w-full p-6 text-center shadow-[0_0_50px_rgba(0,0,0,0.8)] space-y-4">
+            <div class="inline-flex items-center gap-1.5 bg-rose-500/15 border border-rose-500/30 text-rose-400 mono text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                <span>👁️</span> PLAYER IDENTIFICATION
+            </div>
+            <div class="space-y-1">
+                <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight">WHO'S PLAYING?</h2>
+                <p class="text-zinc-400 text-xs sm:text-sm">
+                    Enter your player name to unlock the reflex arena and track your rank.
+                </p>
+            </div>
+            <div class="space-y-3 pt-1">
+                <input id="welcomeNameInput" type="text" maxlength="16" placeholder="ENTER YOUR NAME..." class="w-full bg-zinc-950 border-2 border-zinc-700 focus:border-emerald-400 rounded-2xl px-4 py-3 text-center mono font-extrabold text-white uppercase tracking-wider outline-none placeholder:text-zinc-600 transition-colors" style="user-select: text; -webkit-user-select: text;" />
+                <p id="welcomeNameError" class="hidden text-rose-400 mono text-[11px] font-bold">
+                    ⚠️ Please enter your name to start the game!
+                </p>
+                <button id="startWithNameBtn" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-zinc-950 font-black text-sm shadow-lg active:scale-95 transition">
+                    START GAME
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GOLDEN HALL OF FAME UNLOCK MODAL (Streak 5+) -->
+    <div id="hallOfFameModal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="fake-modal-pop bg-gradient-to-b from-amber-950/90 via-zinc-900 to-zinc-950 border-2 border-amber-400/70 rounded-3xl max-w-sm w-full p-6 text-center shadow-[0_0_60px_rgba(245,158,11,0.35)] space-y-4">
+            <div class="inline-flex items-center gap-1.5 bg-amber-400/20 border border-amber-400/40 text-amber-300 mono text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                <span>👑</span> TOP 1% UNLOCKED
+            </div>
+            <div class="space-y-1">
+                <h2 class="text-2xl sm:text-3xl font-black text-amber-300 tracking-tight">HALL OF FAME</h2>
+                <p id="hofSubtitle" class="text-zinc-300 text-xs sm:text-sm">
+                    You reached <span class="text-white font-bold">Streak 5</span>! Enter your legend tag for the live global board.
+                </p>
+            </div>
+            <div class="space-y-3 pt-1">
+                <input id="playerNameInput" type="text" maxlength="16" placeholder="ENTER YOUR NAME / TAG..." class="w-full bg-zinc-950 border-2 border-amber-500/50 focus:border-amber-400 rounded-2xl px-4 py-3 text-center mono font-extrabold text-white uppercase tracking-wider outline-none placeholder:text-zinc-600" style="user-select: text; -webkit-user-select: text;" />
+                <button id="saveHofBtn" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-zinc-950 font-black text-sm shadow-lg active:scale-95 transition">
+                    CLAIM GLOBAL RANK
+                </button>
+                <button id="skipHofBtn" class="text-xs text-zinc-500 hover:text-zinc-300 font-semibold">
+                    Skip for now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIVE HYBRID GLOBAL LEADERBOARD MODAL -->
+    <div id="leaderboardModal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="fake-modal-pop bg-zinc-900 border border-zinc-800 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+                <div>
+                    <h3 class="text-lg font-black text-white flex items-center gap-2">
+                        <span>🏆</span> GLOBAL HALL OF FAME
+                    </h3>
+                    <p id="lbStatsSub" class="mono text-[10px] text-amber-400 font-bold mt-0.5">
+                        1.4% SUCCESS RATE (500 RUNS)
+                    </p>
+                </div>
+                <button id="closeLbBtn" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-xl px-3 py-1.5 text-xs font-bold">
+                    ✕
+                </button>
+            </div>
+
+            <div id="leaderboardList" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <button id="lbChallengeBtn" class="w-full py-3 px-4 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs active:scale-95 transition">
+                🔥 Share Live Leaderboard & Flex
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER MODAL -->
+    <div id="gameOverModal" class="hidden fixed inset-0 z-40 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="fake-modal-pop bg-zinc-900 border border-zinc-800 rounded-3xl max-w-sm w-full p-6 text-center shadow-2xl space-y-5">
+            
+            <!-- Fail Badge -->
+            <div class="inline-block bg-rose-500/15 border border-rose-500/30 text-rose-400 mono text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+                TRAP TRIGGERED
+            </div>
+
+            <!-- Loss Reason -->
+            <div class="space-y-1.5">
+                <h2 id="loseTitle" class="text-2xl sm:text-3xl font-black text-white leading-tight">YOU BLINKED!</h2>
+                <p id="loseReason" class="text-zinc-400 text-sm">You fell for the fake <span class="text-amber-400 font-bold">"ST0P"</span> trap!</p>
+                <div id="modalRankUpdate" class="hidden pt-1">
+                    <span id="modalRankBadge" class="inline-flex items-center gap-1 bg-amber-400/20 border border-amber-400/50 text-amber-300 mono text-[11px] font-extrabold px-3 py-1 rounded-full">
+                        🏆 GLOBAL RANK UPDATED
+                    </span>
+                </div>
+            </div>
+
+            <!-- Stats Box -->
+            <div class="grid grid-cols-2 gap-3 bg-zinc-950/80 border border-zinc-800/80 rounded-2xl p-3.5">
+                <div>
+                    <div class="text-[10px] uppercase text-zinc-500 font-bold">Final Streak</div>
+                    <div id="modalStreak" class="mono text-2xl font-black text-white">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] uppercase text-zinc-500 font-bold">Best Streak</div>
+                    <div id="modalBest" class="mono text-2xl font-black text-amber-400">0</div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-2.5 pt-1">
+                <!-- View Live Leaderboard Button -->
+                <button id="modalLbBtn" class="w-full py-2.5 px-4 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-xs active:scale-95 transition flex items-center justify-center gap-1.5">
+                    <span>🏆 View Global Top 1% Leaderboard</span>
+                </button>
+
+                <!-- Simulated Rewarded Video Ad to Save Streak -->
+                <button id="reviveAdBtn" class="hidden w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-zinc-950 font-black text-sm shadow-lg shadow-amber-500/20 active:scale-95 transition flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z"></path></svg>
+                    <span>WATCH 3s AD TO SAVE STREAK</span>
+                </button>
+
+                <!-- Primary Instant Restart -->
+                <button id="playAgainBtn" class="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-zinc-200 text-zinc-950 font-black text-base active:scale-95 transition shadow-lg">
+                    TRY AGAIN
+                </button>
+
+                <!-- Viral Ego Share Button -->
+                <button id="modalShareBtn" class="w-full py-2.5 px-4 rounded-2xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs active:scale-95 transition flex items-center justify-center gap-1.5">
+                    <span>🔥 Challenge Friend to Beat Streak</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIMULATED 3-SECOND REWARDED AD OVERLAY -->
+    <div id="adOverlay" class="hidden fixed inset-0 z-50 bg-zinc-950 flex flex-col items-center justify-center p-6 text-center">
+        <div class="max-w-xs w-full space-y-5">
+            <div class="inline-block bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mono text-[10px] font-bold px-3 py-1 rounded-full">
+                SPONSORED REWARDED AD
+            </div>
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 mx-auto flex items-center justify-center text-3xl shadow-xl">
+                🚀
+            </div>
+            <div>
+                <h3 class="text-xl font-black text-white">SuperCharge VPN</h3>
+                <p class="text-zinc-400 text-xs mt-1">Zero lag gaming anywhere in the world.</p>
+            </div>
+            <!-- Progress Bar -->
+            <div class="w-full bg-zinc-800 h-2.5 rounded-full overflow-hidden">
+                <div id="adProgressBar" class="bg-emerald-400 h-full w-0 transition-all duration-100"></div>
+            </div>
+            <p id="adTimerText" class="mono text-xs text-zinc-400">Reward unlocking in 3s...</p>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION (Replaces alert) -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-zinc-950 font-extrabold text-xs px-4 py-2.5 rounded-full shadow-xl opacity-0 pointer-events-none transition-opacity duration-200">
+        Challenge copied! Send it to a friend.
+    </div>
+
+    <script>
+        /**
+         * DON'T BLINK — Viral Reflex Game
+         * Complete self-contained logic with Web Audio API synthesizer,
+         * subtle atmospheric background music, and psychological fake-out engine.
+         */
+
+        // --- SAFE STORAGE & HAPTIC HELPERS ---
+        function safeGetStorage(key, fallback) {
+            try {
+                const val = localStorage.getItem(key);
+                return val !== null ? val : fallback;
+            } catch (e) {
+                return fallback;
+            }
+        }
+
+        function safeSetStorage(key, value) {
+            try {
+                localStorage.setItem(key, value);
+            } catch (e) {
+                // Ignore storage quota or sandbox restrictions
+            }
+        }
+
+        function escapeHTML(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function triggerHaptic(pattern) {
+            try {
+                if (navigator && typeof navigator.vibrate === 'function') {
+                    navigator.vibrate(pattern);
+                }
+            } catch (e) {
+                // Ignore on unsupported devices
+            }
+        }
+
+        // --- 1. WEB AUDIO API SYNTHESIZER & SUBTLE AMBIENT BGM ---
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+                this.tensionInterval = null;
+
+                // Subtle Background Music (BGM) Nodes & State
+                this.bgmStarted = false;
+                this.bgmGain = null;
+                this.bgmFilter = null;
+                this.bgmPulseInterval = null;
+                this.bgmBaseVolume = 0.032; // Kept subtle and balanced
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        this.ctx = new AudioContext();
+                    }
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+                if (this.ctx && !this.bgmStarted) {
+                    this.startBGM();
+                }
+            }
+
+            // Subtle, atmospheric dark-synth ambient pad + soft pulse
+            startBGM() {
+                if (!this.ctx || this.bgmStarted) return;
+                this.bgmStarted = true;
+
+                const now = this.ctx.currentTime;
+
+                // Master gain for background music (very low so SFX stay crisp)
+                this.bgmGain = this.ctx.createGain();
+                this.bgmGain.gain.setValueAtTime(0.0001, now);
+                if (!this.muted) {
+                    this.bgmGain.gain.exponentialRampToValueAtTime(this.bgmBaseVolume, now + 1.8);
+                }
+                this.bgmGain.connect(this.ctx.destination);
+
+                // Warm low-pass filter to keep BGM smooth and non-intrusive
+                this.bgmFilter = this.ctx.createBiquadFilter();
+                this.bgmFilter.type = 'lowpass';
+                this.bgmFilter.frequency.setValueAtTime(240, now);
+                this.bgmFilter.Q.setValueAtTime(1.0, now);
+                this.bgmFilter.connect(this.bgmGain);
+
+                // Slow breathing LFO on filter cutoff (180Hz <-> 300Hz)
+                const lfo = this.ctx.createOscillator();
+                const lfoGain = this.ctx.createGain();
+                lfo.type = 'sine';
+                lfo.frequency.setValueAtTime(0.12, now);
+                lfoGain.gain.setValueAtTime(60, now);
+                lfo.connect(lfoGain);
+                lfoGain.connect(this.bgmFilter.frequency);
+                lfo.start(now);
+
+                // Sub-bass root drone (A1 = 55Hz)
+                const drone1 = this.ctx.createOscillator();
+                const drone1Gain = this.ctx.createGain();
+                drone1.type = 'sine';
+                drone1.frequency.setValueAtTime(55, now);
+                drone1Gain.gain.setValueAtTime(0.55, now);
+                drone1.connect(drone1Gain);
+                drone1Gain.connect(this.bgmFilter);
+                drone1.start(now);
+
+                // Detuned fifth harmonic pad (E2 = 82.41Hz)
+                const drone2 = this.ctx.createOscillator();
+                const drone2Gain = this.ctx.createGain();
+                drone2.type = 'triangle';
+                drone2.frequency.setValueAtTime(82.41, now);
+                drone2.detune.setValueAtTime(6, now);
+                drone2Gain.gain.setValueAtTime(0.3, now);
+                drone2.connect(drone2Gain);
+                drone2Gain.connect(this.bgmFilter);
+                drone2.start(now);
+
+                // Soft atmospheric minor-pentatonic plucks every 2.2s
+                const notes = [110, 130.81, 146.83, 164.81, 130.81, 98.0]; // A2, C3, D3, E3, C3, G2
+                let noteIdx = 0;
+                this.bgmPulseInterval = setInterval(() => {
+                    if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                    const t = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const noteGain = this.ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(notes[noteIdx % notes.length], t);
+                    noteIdx++;
+
+                    noteGain.gain.setValueAtTime(0.001, t);
+                    noteGain.gain.linearRampToValueAtTime(0.28, t + 0.25);
+                    noteGain.gain.exponentialRampToValueAtTime(0.001, t + 1.6);
+
+                    osc.connect(noteGain);
+                    noteGain.connect(this.bgmFilter);
+                    osc.start(t);
+                    osc.stop(t + 1.65);
+                }, 2200);
+            }
+
+            // Temporarily duck BGM so critical game cues cut through cleanly
+            duckBGM(recoverySeconds = 0.45) {
+                if (!this.ctx || !this.bgmGain || this.muted) return;
+                const now = this.ctx.currentTime;
+                this.bgmGain.gain.cancelScheduledValues(now);
+                this.bgmGain.gain.setValueAtTime(0.006, now);
+                this.bgmGain.gain.exponentialRampToValueAtTime(this.bgmBaseVolume, now + recoverySeconds);
+            }
+
+            toggleMute() {
+                this.muted = !this.muted;
+                if (!this.ctx) {
+                    this.init();
+                }
+                if (this.muted) {
+                    this.stopTension();
+                    if (this.bgmGain && this.ctx) {
+                        const now = this.ctx.currentTime;
+                        this.bgmGain.gain.cancelScheduledValues(now);
+                        this.bgmGain.gain.setValueAtTime(0.0001, now);
+                    }
+                } else if (this.bgmGain && this.ctx) {
+                    if (this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                    const now = this.ctx.currentTime;
+                    this.bgmGain.gain.cancelScheduledValues(now);
+                    this.bgmGain.gain.exponentialRampToValueAtTime(this.bgmBaseVolume, now + 0.3);
+                }
+                return this.muted;
+            }
+
+            suspendForVisibility() {
+                this.stopTension();
+                if (this.ctx && this.ctx.state === 'running') {
+                    this.ctx.suspend();
+                }
+            }
+
+            resumeFromVisibility() {
+                if (this.ctx && this.ctx.state === 'suspended' && !this.muted) {
+                    this.ctx.resume();
+                }
+            }
+
+            // Heartbeat / Tension tick while holding
+            startTension(streak) {
+                this.stopTension();
+                if (this.muted) return;
+                this.init();
+
+                let step = 0;
+                const speed = Math.max(160, 340 - streak * 18);
+                this.tensionInterval = setInterval(() => {
+                    if (this.muted || !this.ctx || this.ctx.state !== 'running') return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    // Slightly rising pitch for psychological tension
+                    osc.frequency.setValueAtTime(110 + (step % 8) * 12, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.08);
+                    step++;
+                }, speed);
+            }
+
+            stopTension() {
+                if (this.tensionInterval) {
+                    clearInterval(this.tensionInterval);
+                    this.tensionInterval = null;
+                }
+            }
+
+            // Deceptive chime on fake-outs to bait players
+            playFakeout() {
+                if (this.muted) return;
+                this.init();
+                this.duckBGM(0.25);
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(620, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(480, this.ctx.currentTime + 0.14);
+
+                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+
+            // Sharp crisp alarm when real "STOP" appears
+            playRealStop() {
+                if (this.muted) return;
+                this.init();
+                this.duckBGM(0.4);
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(1320, this.ctx.currentTime + 0.04);
+
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.22);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.22);
+            }
+
+            // Triumphant chord on round clear
+            playWin() {
+                if (this.muted) return;
+                this.init();
+                this.duckBGM(0.5);
+                const freqs = [523.25, 659.25, 783.99, 1046.50]; // C Major chord
+                freqs.forEach((f, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(f, this.ctx.currentTime + idx * 0.03);
+                    gain.gain.setValueAtTime(0.12, this.ctx.currentTime + idx * 0.03);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + idx * 0.03);
+                    osc.stop(this.ctx.currentTime + 0.36);
+                });
+            }
+
+            // Heavy bass buzzer on fail
+            playLose() {
+                if (this.muted) return;
+                this.init();
+                this.duckBGM(0.55);
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(65, this.ctx.currentTime + 0.35);
+
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.36);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.36);
+            }
+        }
+
+        const sfx = new SoundFX();
+
+        // --- 2. GAME STATE & CONFIGURATION ---
+        const DEFAULT_LEADERS = [
+            { name: "SHADOW_PK", streak: 11, reaction: "212ms", isUser: false },
+            { name: "KAI_ZEN", streak: 9, reaction: "228ms", isUser: false },
+            { name: "VEX_99", streak: 8, reaction: "235ms", isUser: false },
+            { name: "ZARA_OP", streak: 7, reaction: "249ms", isUser: false },
+            { name: "NIGHT_OWL", streak: 6, reaction: "261ms", isUser: false },
+            { name: "BLINK_GOD", streak: 6, reaction: "274ms", isUser: false },
+            { name: "NEO_RUSH", streak: 5, reaction: "289ms", isUser: false },
+            { name: "CYBER_FOX", streak: 5, reaction: "304ms", isUser: false },
+            { name: "PULSE_X", streak: 5, reaction: "318ms", isUser: false },
+            { name: "ZERO_LAG", streak: 5, reaction: "342ms", isUser: false }
+        ];
+
+        function parseReactionMs(val) {
+            const num = parseInt(String(val || '400').replace(/[^0-9]/g, ''), 10);
+            return Number.isFinite(num) && num > 0 ? num : 400;
+        }
+
+        function sortLeaders(list) {
+            return [...list].sort((a, b) => {
+                const streakDiff = (Number(b.streak) || 0) - (Number(a.streak) || 0);
+                if (streakDiff !== 0) return streakDiff;
+                return parseReactionMs(a.reaction) - parseReactionMs(b.reaction);
+            });
+        }
+
+        function dedupeLeaders(list, activePlayerName = '') {
+            const activeKey = String(activePlayerName || '').trim().toUpperCase();
+            const map = new Map();
+            for (const item of list) {
+                if (!item || !item.name) continue;
+                const cleanName = String(item.name).trim().toUpperCase().slice(0, 16);
+                if (!cleanName) continue;
+                const streak = Number(item.streak) || 0;
+                const reactionMs = parseReactionMs(item.reaction);
+                const isUser = activeKey ? (cleanName === activeKey) : Boolean(item.isUser);
+
+                if (!map.has(cleanName)) {
+                    map.set(cleanName, {
+                        name: cleanName,
+                        streak: streak,
+                        reaction: `${reactionMs}ms`,
+                        isUser: isUser
+                    });
+                } else {
+                    const existing = map.get(cleanName);
+                    const existingMs = parseReactionMs(existing.reaction);
+                    if (
+                        streak > existing.streak ||
+                        (streak === existing.streak && reactionMs < existingMs)
+                    ) {
+                        existing.streak = streak;
+                        existing.reaction = `${reactionMs}ms`;
+                    }
+                    existing.isUser = existing.isUser || isUser;
+                }
+            }
+            return sortLeaders(Array.from(map.values()));
+        }
+
+        let parsedLeaders = [...DEFAULT_LEADERS];
+        try {
+            const rawLeaders = safeGetStorage('dontBlinkLeaders', null);
+            if (rawLeaders) {
+                const candidate = JSON.parse(rawLeaders);
+                if (Array.isArray(candidate) && candidate.length > 0) {
+                    parsedLeaders = dedupeLeaders([...candidate, ...DEFAULT_LEADERS]);
+                    safeSetStorage('dontBlinkLeaders', JSON.stringify(parsedLeaders));
+                }
+            }
+        } catch (e) {
+            parsedLeaders = [...DEFAULT_LEADERS];
+        }
+
+        const state = {
+            phase: 'IDLE', // IDLE | HOLDING | STOP_ACTIVE | WON_ROUND | GAME_OVER
+            playerName: '',
+            streak: 0,
+            bestStreak: parseInt(safeGetStorage('dontBlinkBest', '0'), 10) || 0,
+            totalGlobalRuns: parseInt(safeGetStorage('dontBlinkTotalRuns', '500'), 10) || 500,
+            streak5PlusRuns: parseInt(safeGetStorage('dontBlinkS5Runs', '7'), 10) || 7,
+            leaders: parsedLeaders,
+            lastBestReaction: 400,
+            hofClaimedThisRun: false,
+            stopTriggeredAt: 0,
+            reactionWindow: 400, // Fixed 400ms window allowed to release after STOP
+            activeFakeoutText: null,
+            revivedThisRun: false,
+            activePointerId: null,
+            timers: []
+        };
+
+        // Deceptive Fake-out Words (Designed to trick peripheral vision)
+        const FAKE_WORDS = [
+            { text: "ST0P", color: "text-emerald-400", label: 'fake "ST0P" (with a zero)' },
+            { text: "DON'T STOP", color: "text-rose-400", label: '"DON\'T STOP" trap' },
+            { text: "SHOP", color: "text-emerald-400", label: 'fake "SHOP" lookalike' },
+            { text: "5TOP", color: "text-emerald-400", label: 'fake "5TOP" lookalike' },
+            { text: "WAIT...", color: "text-amber-400", label: '"WAIT..." nerve test' },
+            { text: "SLOP", color: "text-emerald-400", label: 'fake "SLOP" lookalike' },
+            { text: "HOLD ON", color: "text-sky-400", label: '"HOLD ON" bait' }
+        ];
+
+        // --- 3. DOM ELEMENTS ---
+        const el = {
+            body: document.body,
+            flashOverlay: document.getElementById('flashOverlay'),
+            bugDistraction: document.getElementById('bugDistraction'),
+            batteryDistraction: document.getElementById('batteryDistraction'),
+            streakDisplay: document.getElementById('streakDisplay'),
+            bestDisplay: document.getElementById('bestDisplay'),
+            hudPlayerName: document.getElementById('hudPlayerName'),
+            welcomeNameModal: document.getElementById('welcomeNameModal'),
+            welcomeNameInput: document.getElementById('welcomeNameInput'),
+            welcomeNameError: document.getElementById('welcomeNameError'),
+            startWithNameBtn: document.getElementById('startWithNameBtn'),
+            windowBadge: document.getElementById('windowBadge'),
+            signalBox: document.getElementById('signalBox'),
+            signalSub: document.getElementById('signalSub'),
+            signalWord: document.getElementById('signalWord'),
+            reactionBadge: document.getElementById('reactionBadge'),
+            holdButton: document.getElementById('holdButton'),
+            btnMainText: document.getElementById('btnMainText'),
+            btnSubText: document.getElementById('btnSubText'),
+            gameOverModal: document.getElementById('gameOverModal'),
+            loseTitle: document.getElementById('loseTitle'),
+            loseReason: document.getElementById('loseReason'),
+            modalStreak: document.getElementById('modalStreak'),
+            modalBest: document.getElementById('modalBest'),
+            modalRankUpdate: document.getElementById('modalRankUpdate'),
+            modalRankBadge: document.getElementById('modalRankBadge'),
+            reviveAdBtn: document.getElementById('reviveAdBtn'),
+            playAgainBtn: document.getElementById('playAgainBtn'),
+            modalShareBtn: document.getElementById('modalShareBtn'),
+            shareTopBtn: document.getElementById('shareTopBtn'),
+            muteBtn: document.getElementById('muteBtn'),
+            soundOnIcon: document.getElementById('soundOnIcon'),
+            soundOffIcon: document.getElementById('soundOffIcon'),
+            adOverlay: document.getElementById('adOverlay'),
+            adProgressBar: document.getElementById('adProgressBar'),
+            adTimerText: document.getElementById('adTimerText'),
+            toast: document.getElementById('toast'),
+            globalPercentText: document.getElementById('globalPercentText'),
+            leaderboardTopBtn: document.getElementById('leaderboardTopBtn'),
+            hallOfFameModal: document.getElementById('hallOfFameModal'),
+            hofSubtitle: document.getElementById('hofSubtitle'),
+            playerNameInput: document.getElementById('playerNameInput'),
+            saveHofBtn: document.getElementById('saveHofBtn'),
+            skipHofBtn: document.getElementById('skipHofBtn'),
+            leaderboardModal: document.getElementById('leaderboardModal'),
+            lbStatsSub: document.getElementById('lbStatsSub'),
+            leaderboardList: document.getElementById('leaderboardList'),
+            closeLbBtn: document.getElementById('closeLbBtn'),
+            lbChallengeBtn: document.getElementById('lbChallengeBtn'),
+            modalLbBtn: document.getElementById('modalLbBtn')
+        };
+
+        // --- 4. UTILITY FUNCTIONS ---
+        function clearAllTimers() {
+            state.timers.forEach(id => clearTimeout(id));
+            state.timers = [];
+            sfx.stopTension();
+            el.signalBox.classList.remove('tension-shake');
+            el.batteryDistraction.classList.add('hidden');
+            el.bugDistraction.classList.remove('bug-active');
+        }
+
+        function addTimer(fn, delay) {
+            const id = setTimeout(fn, delay);
+            state.timers.push(id);
+            return id;
+        }
+
+        function isAnyModalOpen() {
+            return (
+                !el.welcomeNameModal.classList.contains('hidden') ||
+                !el.gameOverModal.classList.contains('hidden') ||
+                !el.hallOfFameModal.classList.contains('hidden') ||
+                !el.leaderboardModal.classList.contains('hidden') ||
+                !el.adOverlay.classList.contains('hidden')
+            );
+        }
+
+        function updateHUD() {
+            el.streakDisplay.textContent = state.streak;
+            el.bestDisplay.textContent = state.bestStreak;
+            el.hudPlayerName.textContent = state.playerName || '---';
+            
+            // Fixed 400ms reaction window across all streaks
+            state.reactionWindow = 400;
+            el.windowBadge.textContent = `WINDOW: ${state.reactionWindow}ms`;
+
+            // Update Hybrid Global Percentage
+            const runs = Math.max(1, state.totalGlobalRuns);
+            const pct = ((state.streak5PlusRuns / runs) * 100).toFixed(1);
+            el.globalPercentText.innerHTML = `Only <span class="text-amber-400 font-extrabold">${pct}%</span> of ${runs} global runs reached Streak 5`;
+            el.lbStatsSub.textContent = `TOP 10 • ${pct}% SUCCESS RATE (${runs} RUNS)`;
+        }
+
+        function recordGlobalRun(finalStreak) {
+            state.totalGlobalRuns += 1;
+            if (finalStreak >= 5) {
+                state.streak5PlusRuns += 1;
+            }
+            safeSetStorage('dontBlinkTotalRuns', state.totalGlobalRuns.toString());
+            safeSetStorage('dontBlinkS5Runs', state.streak5PlusRuns.toString());
+            updateHUD();
+        }
+
+        // Upserts a single entry per player name and updates ranking only when score improves
+        function upsertPlayerLeaderboard(streak, reactionMs) {
+            const cleanName = String(state.playerName || '').trim().toUpperCase().slice(0, 16);
+            if (!cleanName || streak <= 0) {
+                return { status: 'none', rank: null, prevRank: null };
+            }
+
+            // Ensure current list is deduplicated and tag matching user entry
+            state.leaders = dedupeLeaders(state.leaders, cleanName);
+            const prevIdx = state.leaders.findIndex(item => item.name.toUpperCase() === cleanName);
+            const prevRank = prevIdx !== -1 ? prevIdx + 1 : null;
+            const prevStreak = prevIdx !== -1 ? (Number(state.leaders[prevIdx].streak) || 0) : 0;
+            const prevReactionMs = prevIdx !== -1 ? parseReactionMs(state.leaders[prevIdx].reaction) : 9999;
+
+            let status = 'unchanged';
+            if (prevIdx === -1) {
+                state.leaders.push({
+                    name: cleanName,
+                    streak: streak,
+                    reaction: `${reactionMs}ms`,
+                    isUser: true
+                });
+                status = 'inserted';
+            } else if (
+                streak > prevStreak ||
+                (streak === prevStreak && reactionMs < prevReactionMs)
+            ) {
+                state.leaders[prevIdx].streak = streak;
+                state.leaders[prevIdx].reaction = `${reactionMs}ms`;
+                state.leaders[prevIdx].isUser = true;
+                status = 'improved';
+            } else {
+                state.leaders[prevIdx].isUser = true;
+            }
+
+            state.leaders = dedupeLeaders(state.leaders, cleanName);
+            safeSetStorage('dontBlinkLeaders', JSON.stringify(state.leaders));
+
+            const newIdx = state.leaders.findIndex(item => item.name.toUpperCase() === cleanName);
+            const newRank = newIdx !== -1 ? newIdx + 1 : null;
+            return { status, rank: newRank, prevRank };
+        }
+
+        function renderLeaderboard() {
+            el.leaderboardList.innerHTML = '';
+            state.leaders = dedupeLeaders(state.leaders, state.playerName);
+            const sorted = state.leaders.slice(0, 10);
+            sorted.forEach((entry, index) => {
+                const rank = index + 1;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+                const safeName = escapeHTML(entry.name);
+                const safeReaction = escapeHTML(entry.reaction);
+                const safeStreak = Number(entry.streak) || 0;
+
+                const row = document.createElement('div');
+                row.className = `flex items-center justify-between px-3.5 py-2.5 rounded-2xl border ${
+                    entry.isUser
+                        ? 'bg-amber-500/15 border-amber-400/60 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+                        : 'bg-zinc-950/70 border-zinc-800/80'
+                }`;
+                row.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <span class="mono text-xs font-black w-6 text-center ${rank <= 3 ? 'text-amber-400' : 'text-zinc-500'}">${medal}</span>
+                        <div>
+                            <div class="mono text-xs font-extrabold ${entry.isUser ? 'text-amber-300' : 'text-white'} flex items-center gap-1.5">
+                                ${safeName}
+                                ${entry.isUser ? '<span class="text-[9px] bg-amber-400 text-zinc-950 px-1.5 py-0.2 rounded font-black">YOU</span>' : ''}
+                            </div>
+                            <div class="mono text-[10px] text-zinc-500">Best Reflex: ${safeReaction}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="mono text-sm font-black text-emerald-400">STREAK ${safeStreak}</span>
+                    </div>
+                `;
+                el.leaderboardList.appendChild(row);
+            });
+        }
+
+        function openLeaderboard() {
+            renderLeaderboard();
+            el.leaderboardModal.classList.remove('hidden');
+        }
+
+        function triggerScreenShake() {
+            el.body.classList.remove('shake');
+            void el.body.offsetWidth; // Force reflow
+            el.body.classList.add('shake');
+        }
+
+        function triggerFlash(colorClass) {
+            el.flashOverlay.className = `fixed inset-0 pointer-events-none transition-opacity duration-75 z-10 ${colorClass} opacity-35`;
+            setTimeout(() => {
+                el.flashOverlay.classList.remove('opacity-35');
+                el.flashOverlay.classList.add('opacity-0');
+            }, 90);
+        }
+
+        function showToast(msg) {
+            el.toast.textContent = msg;
+            el.toast.classList.remove('opacity-0');
+            el.toast.classList.add('opacity-100');
+            setTimeout(() => {
+                el.toast.classList.remove('opacity-100');
+                el.toast.classList.add('opacity-0');
+            }, 2400);
+        }
+
+        // --- 5. CORE GAMEPLAY LOOP & PSYCHOLOGICAL TRAPS ---
+        function resetGame(keepStreak = false) {
+            clearAllTimers();
+            state.activePointerId = null;
+            if (!keepStreak) {
+                state.streak = 0;
+                state.revivedThisRun = false;
+                state.hofClaimedThisRun = false;
+                state.lastBestReaction = 400;
+            }
+            state.phase = 'IDLE';
+            el.gameOverModal.classList.add('hidden');
+            el.hallOfFameModal.classList.add('hidden');
+            el.reactionBadge.classList.add('hidden');
+
+            el.holdButton.classList.remove('holding', 'go-signal');
+            el.btnMainText.textContent = 'PRESS & HOLD';
+            el.btnSubText.textContent = "DON'T LET GO";
+
+            el.signalBox.className = 'w-full h-32 sm:h-36 bg-zinc-900/80 border-2 border-zinc-800 rounded-3xl flex flex-col items-center justify-center px-4 relative overflow-hidden shadow-inner';
+            el.signalSub.textContent = 'STATUS: READY';
+            el.signalSub.className = 'mono text-[11px] uppercase tracking-widest text-zinc-500 mb-1';
+            el.signalWord.textContent = 'HOLD BELOW';
+            el.signalWord.className = 'text-4xl sm:text-6xl font-black tracking-wider text-zinc-500 text-center';
+
+            updateHUD();
+        }
+
+        function startRound() {
+            if (!state.playerName) {
+                el.welcomeNameModal.classList.remove('hidden');
+                setTimeout(() => el.welcomeNameInput.focus(), 50);
+                return;
+            }
+            if (state.phase === 'HOLDING' || state.phase === 'STOP_ACTIVE') return;
+            
+            sfx.init();
+            clearAllTimers();
+            state.phase = 'HOLDING';
+            state.activeFakeoutText = null;
+            el.reactionBadge.classList.add('hidden');
+
+            // Button visual state
+            el.holdButton.classList.add('holding');
+            el.holdButton.classList.remove('go-signal');
+            el.btnMainText.textContent = 'HOLDING...';
+            el.btnSubText.textContent = 'WAIT FOR "STOP"';
+
+            // Signal box tension state
+            el.signalBox.className = 'w-full h-32 sm:h-36 bg-zinc-900 border-2 border-rose-500/40 rounded-3xl flex flex-col items-center justify-center px-4 relative overflow-hidden shadow-inner tension-shake';
+            el.signalSub.textContent = 'NERVES OF STEEL...';
+            el.signalSub.className = 'mono text-[11px] uppercase tracking-widest text-rose-400 mb-1';
+            el.signalWord.textContent = 'HOLDING';
+            el.signalWord.className = 'text-4xl sm:text-6xl font-black tracking-wider text-white text-center';
+
+            sfx.startTension(state.streak);
+
+            // Schedule Psychological Fake-outs based on Streak difficulty
+            let currentDelay = 900 + Math.random() * 900; // Initial safe hold time
+            const numFakeouts = state.streak === 0 ? (Math.random() > 0.5 ? 1 : 0) : Math.min(3, 1 + Math.floor(state.streak / 2));
+
+            for (let i = 0; i < numFakeouts; i++) {
+                const fakeTime = currentDelay;
+                addTimer(() => {
+                    if (state.phase !== 'HOLDING') return;
+                    triggerFakeout();
+                }, fakeTime);
+
+                // Gap before next fakeout or real STOP
+                currentDelay += 850 + Math.random() * 950;
+            }
+
+            // Schedule the REAL "STOP" command
+            addTimer(() => {
+                if (state.phase !== 'HOLDING') return;
+                triggerRealStop();
+            }, currentDelay);
+        }
+
+        function triggerFakeout() {
+            const roll = Math.random();
+
+            // 1. Visual Distraction: Crawling Bug (20% chance on streak >= 1)
+            if (state.streak >= 1 && roll < 0.22) {
+                el.bugDistraction.classList.remove('bug-active');
+                void el.bugDistraction.offsetWidth;
+                el.bugDistraction.classList.add('bug-active');
+                return;
+            }
+
+            // 2. Visual Distraction: Fake Low Battery Alert (20% chance on streak >= 2)
+            if (state.streak >= 2 && roll >= 0.22 && roll < 0.42) {
+                el.batteryDistraction.classList.remove('hidden');
+                sfx.playFakeout();
+                triggerHaptic(15);
+                addTimer(() => {
+                    el.batteryDistraction.classList.add('hidden');
+                }, 950);
+                return;
+            }
+
+            // 3. Deceptive Word Fake-out ("ST0P", "DON'T STOP", etc.)
+            const trap = FAKE_WORDS[Math.floor(Math.random() * FAKE_WORDS.length)];
+            state.activeFakeoutText = trap.label;
+
+            sfx.playFakeout();
+            triggerHaptic(15);
+            triggerFlash('bg-emerald-500'); // Deceptive green flash!
+
+            el.signalSub.textContent = 'CAREFUL...';
+            el.signalWord.textContent = trap.text;
+            el.signalWord.className = `text-4xl sm:text-6xl font-black tracking-wider ${trap.color} scale-105 text-center`;
+
+            // Reset back to HOLDING text after 680ms if player survived the bait
+            addTimer(() => {
+                if (state.phase === 'HOLDING') {
+                    state.activeFakeoutText = null;
+                    el.signalSub.textContent = 'NICE NERVES! KEEP HOLDING';
+                    el.signalWord.textContent = 'HOLDING';
+                    el.signalWord.className = 'text-4xl sm:text-6xl font-black tracking-wider text-white text-center';
+                }
+            }, 680);
+        }
+
+        function triggerRealStop() {
+            state.phase = 'STOP_ACTIVE';
+            state.stopTriggeredAt = performance.now();
+            state.activeFakeoutText = null;
+
+            sfx.stopTension();
+            sfx.playRealStop();
+            triggerHaptic(35);
+            triggerFlash('bg-emerald-400');
+
+            el.signalBox.classList.remove('tension-shake');
+            el.signalBox.className = 'w-full h-32 sm:h-36 bg-emerald-950/90 border-2 border-emerald-400 rounded-3xl flex flex-col items-center justify-center px-4 relative overflow-hidden shadow-[0_0_40px_rgba(16,185,129,0.4)]';
+            el.signalSub.textContent = 'RELEASE NOW!';
+            el.signalSub.className = 'mono text-xs uppercase tracking-widest text-emerald-300 font-bold mb-1';
+            el.signalWord.textContent = 'STOP';
+            el.signalWord.className = 'text-5xl sm:text-7xl font-black tracking-widest text-emerald-400 scale-110 text-center';
+
+            el.holdButton.classList.add('go-signal');
+            el.btnMainText.textContent = 'LET GO!';
+            el.btnSubText.textContent = 'NOW NOW NOW!';
+
+            // Deadline Timer: If player holds too long, they lose!
+            addTimer(() => {
+                if (state.phase === 'STOP_ACTIVE') {
+                    failGame(
+                        'TOO SLOW!',
+                        `You froze! You took longer than <span class="text-rose-400 font-bold">${state.reactionWindow}ms</span> to lift your finger.`
+                    );
+                }
+            }, state.reactionWindow);
+        }
+
+        function handleRelease() {
+            state.activePointerId = null;
+            if (state.phase === 'HOLDING') {
+                // Released too early (either panicked or baited by fake-out)
+                const reason = state.activeFakeoutText
+                    ? `You got baited by the ${state.activeFakeoutText}!`
+                    : `You panicked and let go before <span class="text-emerald-400 font-bold">"STOP"</span> appeared!`;
+                failGame('EARLY BLINK!', reason);
+                return;
+            }
+
+            if (state.phase === 'STOP_ACTIVE') {
+                const reactionTime = Math.max(1, Math.round(performance.now() - state.stopTriggeredAt));
+                winRound(reactionTime);
+            }
+        }
+
+        function winRound(reactionTime) {
+            clearAllTimers();
+            state.phase = 'WON_ROUND';
+            state.streak += 1;
+            if (reactionTime < state.lastBestReaction) {
+                state.lastBestReaction = reactionTime;
+            }
+
+            if (state.streak > state.bestStreak) {
+                state.bestStreak = state.streak;
+                safeSetStorage('dontBlinkBest', state.bestStreak.toString());
+            }
+
+            // Keep single player leaderboard entry synced in real time as streak climbs
+            upsertPlayerLeaderboard(state.streak, state.lastBestReaction);
+
+            sfx.playWin();
+            triggerHaptic([20, 35, 20]);
+
+            el.holdButton.classList.remove('holding', 'go-signal');
+            el.btnMainText.textContent = 'NEXT LEVEL';
+            el.btnSubText.textContent = 'HOLD TO CONTINUE';
+
+            el.signalBox.className = 'w-full h-32 sm:h-36 bg-zinc-900 border-2 border-emerald-500/50 rounded-3xl flex flex-col items-center justify-center px-4 relative overflow-hidden';
+            el.signalSub.textContent = `STREAK ${state.streak} CLEARED!`;
+            el.signalSub.className = 'mono text-xs uppercase tracking-widest text-emerald-400 font-bold mb-1';
+            el.signalWord.textContent = 'SURVIVED';
+            el.signalWord.className = 'text-4xl sm:text-5xl font-black tracking-wider text-white text-center';
+
+            el.reactionBadge.textContent = `${reactionTime}ms — ${reactionTime < 220 ? 'GODLIKE REFLEX!' : 'CLEAN RELEASE!'}`;
+            el.reactionBadge.classList.remove('hidden');
+
+            updateHUD();
+        }
+
+        function failGame(title, reasonHTML) {
+            clearAllTimers();
+            state.phase = 'GAME_OVER';
+            state.activePointerId = null;
+            sfx.playLose();
+            triggerHaptic([60, 40, 80]);
+            triggerScreenShake();
+            triggerFlash('bg-rose-600');
+
+            // Log run into Hybrid Global Leaderboard stats
+            recordGlobalRun(state.streak);
+
+            el.holdButton.classList.remove('holding', 'go-signal');
+            el.btnMainText.textContent = 'FAILED';
+            el.btnSubText.textContent = 'TRY AGAIN';
+
+            el.loseTitle.textContent = title;
+            el.loseReason.innerHTML = reasonHTML;
+            el.modalStreak.textContent = state.streak;
+            el.modalBest.textContent = state.bestStreak;
+
+            // Show Rewarded Ad Revive button only if streak >= 2 and not already revived this run
+            if (state.streak >= 2 && !state.revivedThisRun) {
+                el.reviveAdBtn.classList.remove('hidden');
+            } else {
+                el.reviveAdBtn.classList.add('hidden');
+            }
+
+            // Automatically update the player's single leaderboard entry without asking for name again
+            const lbResult = upsertPlayerLeaderboard(state.streak, state.lastBestReaction);
+            if (lbResult.rank && lbResult.rank <= 10 && state.streak > 0) {
+                el.modalRankUpdate.classList.remove('hidden');
+                if (lbResult.status === 'improved' && lbResult.prevRank && lbResult.rank < lbResult.prevRank) {
+                    el.modalRankBadge.textContent = `🏆 RANK UP! #${lbResult.prevRank} ➔ #${lbResult.rank} ON TOP 10`;
+                    showToast(`🔥 ${state.playerName} climbed from #${lbResult.prevRank} to #${lbResult.rank}!`);
+                } else if (lbResult.status === 'inserted') {
+                    el.modalRankBadge.textContent = `👑 ENTERED TOP 10 AT RANK #${lbResult.rank}!`;
+                    showToast(`👑 ${state.playerName} ranked #${lbResult.rank} on Global Top 10!`);
+                } else if (lbResult.status === 'improved') {
+                    el.modalRankBadge.textContent = `⚡ NEW PERSONAL BEST — RANK #${lbResult.rank}!`;
+                } else {
+                    el.modalRankBadge.textContent = `🏆 YOUR GLOBAL RANK: #${lbResult.rank}`;
+                }
+            } else {
+                el.modalRankUpdate.classList.add('hidden');
+            }
+
+            el.gameOverModal.classList.remove('hidden');
+        }
+
+        // --- 6. REWARDED STREAK SAVER & VIRAL SHARE HOOKS ---
+        function playRewardedAd() {
+            el.gameOverModal.classList.add('hidden');
+            el.adOverlay.classList.remove('hidden');
+            el.adProgressBar.style.width = '0%';
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                el.adProgressBar.style.width = `${progress}%`;
+                const secsLeft = Math.ceil((100 - progress) / 33.3);
+                el.adTimerText.textContent = `Reward unlocking in ${Math.max(1, secsLeft)}s...`;
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    el.adOverlay.classList.add('hidden');
+                    state.revivedThisRun = true;
+                    showToast('Streak Saved! Hold button to continue.');
+                    resetGame(true); // Keep current streak!
+                }
+            }, 140);
+        }
+
+        function shareChallenge() {
+            sfx.init();
+            const scoreToBrag = Math.max(state.streak, state.bestStreak);
+            const runs = Math.max(1, state.totalGlobalRuns);
+            const pct = ((state.streak5PlusRuns / runs) * 100).toFixed(1);
+            const text = scoreToBrag > 0
+                ? `👁️ Only ${pct}% of players reach Streak 5 on DON'T BLINK! I hit Streak ${scoreToBrag}. Bet you fall for the fake "ST0P" trap on try #1 🔥`
+                : `👁️ Only ${pct}% of players survive Streak 5 on DON'T BLINK! Test your reflexes and try not to fall for the fake traps 🔥`;
+
+            // Use safe fallback copy method for iframes
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                showToast('Challenge copied! Paste & send to a friend.');
+            } catch (err) {
+                showToast('Ready to challenge! Beat Streak ' + scoreToBrag);
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        // --- 7. EVENT LISTENERS (Pointer + Keyboard for Desktop & Mobile) ---
+        // Prevent mobile long-press context menu on hold button
+        el.holdButton.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // Pointer events unify touch & mouse cleanly with activePointerId tracking
+        el.holdButton.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            sfx.init();
+            if (state.phase === 'IDLE' || state.phase === 'WON_ROUND') {
+                state.activePointerId = e.pointerId;
+                startRound();
+            } else if (state.phase === 'GAME_OVER' && !isAnyModalOpen()) {
+                // Recovery safety if all modals were dismissed
+                resetGame(false);
+                state.activePointerId = e.pointerId;
+                startRound();
+            }
+        });
+
+        window.addEventListener('pointerup', (e) => {
+            if (state.activePointerId !== null && e.pointerId !== state.activePointerId) return;
+            if (state.phase === 'HOLDING' || state.phase === 'STOP_ACTIVE') {
+                handleRelease();
+            }
+        });
+
+        window.addEventListener('pointercancel', (e) => {
+            if (state.activePointerId !== null && e.pointerId !== state.activePointerId) return;
+            if (state.phase === 'HOLDING' || state.phase === 'STOP_ACTIVE') {
+                handleRelease();
+            }
+        });
+
+        // Spacebar support for Desktop gamers (guarded against input fields & open modals)
+        window.addEventListener('keydown', (e) => {
+            if (
+                document.activeElement === el.playerNameInput ||
+                document.activeElement === el.welcomeNameInput ||
+                (e.target && e.target.tagName === 'INPUT')
+            ) {
+                return;
+            }
+            if (e.code === 'Space' && !e.repeat) {
+                if (
+                    !el.welcomeNameModal.classList.contains('hidden') ||
+                    !el.hallOfFameModal.classList.contains('hidden') ||
+                    !el.leaderboardModal.classList.contains('hidden') ||
+                    !el.adOverlay.classList.contains('hidden')
+                ) {
+                    return;
+                }
+                e.preventDefault();
+                sfx.init();
+                if (!el.gameOverModal.classList.contains('hidden')) {
+                    resetGame(false);
+                    return;
+                }
+                if (state.phase === 'IDLE' || state.phase === 'WON_ROUND') {
+                    startRound();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (
+                document.activeElement === el.playerNameInput ||
+                document.activeElement === el.welcomeNameInput ||
+                (e.target && e.target.tagName === 'INPUT')
+            ) {
+                return;
+            }
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (state.phase === 'HOLDING' || state.phase === 'STOP_ACTIVE') {
+                    handleRelease();
+                }
+            }
+        });
+
+        // Pause audio and safely reset active holds if tab loses visibility
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                sfx.suspendForVisibility();
+                if (state.phase === 'HOLDING' || state.phase === 'STOP_ACTIVE') {
+                    resetGame(true);
+                }
+            } else {
+                sfx.resumeFromVisibility();
+            }
+        });
+
+        // UI Button Listeners
+        el.playAgainBtn.addEventListener('click', () => {
+            sfx.init();
+            resetGame(false);
+        });
+        el.reviveAdBtn.addEventListener('click', () => {
+            sfx.init();
+            playRewardedAd();
+        });
+        el.modalShareBtn.addEventListener('click', shareChallenge);
+        el.shareTopBtn.addEventListener('click', shareChallenge);
+        el.lbChallengeBtn.addEventListener('click', shareChallenge);
+
+        el.leaderboardTopBtn.addEventListener('click', () => {
+            sfx.init();
+            openLeaderboard();
+        });
+        el.modalLbBtn.addEventListener('click', () => {
+            sfx.init();
+            openLeaderboard();
+        });
+        el.closeLbBtn.addEventListener('click', () => {
+            el.leaderboardModal.classList.add('hidden');
+            // If game was over and no modal is left open, reset cleanly to IDLE so player isn't soft-locked
+            if (state.phase === 'GAME_OVER' && el.gameOverModal.classList.contains('hidden')) {
+                resetGame(false);
+            }
+        });
+
+        function submitWelcomeName() {
+            const raw = el.welcomeNameInput.value.trim().toUpperCase();
+            if (!raw) {
+                el.welcomeNameError.classList.remove('hidden');
+                el.welcomeNameInput.classList.add('border-rose-500');
+                triggerScreenShake();
+                el.welcomeNameInput.focus();
+                return;
+            }
+            sfx.init();
+            state.playerName = raw.slice(0, 16);
+            safeSetStorage('dontBlinkPlayerName', state.playerName);
+            state.leaders = dedupeLeaders(state.leaders, state.playerName);
+            const existingUserEntry = state.leaders.find(item => item.name.toUpperCase() === state.playerName);
+            if (existingUserEntry && existingUserEntry.streak > state.bestStreak) {
+                state.bestStreak = existingUserEntry.streak;
+                safeSetStorage('dontBlinkBest', state.bestStreak.toString());
+            }
+            safeSetStorage('dontBlinkLeaders', JSON.stringify(state.leaders));
+            el.welcomeNameError.classList.add('hidden');
+            el.welcomeNameInput.classList.remove('border-rose-500');
+            el.welcomeNameModal.classList.add('hidden');
+            updateHUD();
+            showToast(`Welcome, ${state.playerName}! Hold the button to start.`);
+        }
+
+        el.startWithNameBtn.addEventListener('click', submitWelcomeName);
+        el.welcomeNameInput.addEventListener('input', () => {
+            if (el.welcomeNameInput.value.trim().length > 0) {
+                el.welcomeNameError.classList.add('hidden');
+                el.welcomeNameInput.classList.remove('border-rose-500');
+            }
+        });
+        el.welcomeNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitWelcomeName();
+            }
+        });
+
+        el.saveHofBtn.addEventListener('click', () => {
+            sfx.init();
+            const rawName = el.playerNameInput.value.trim().toUpperCase() || state.playerName || 'LEGEND_1%';
+            const cleanName = rawName.slice(0, 16);
+            state.playerName = cleanName;
+            safeSetStorage('dontBlinkPlayerName', state.playerName);
+            state.hofClaimedThisRun = true;
+            upsertPlayerLeaderboard(state.streak, state.lastBestReaction);
+            el.hallOfFameModal.classList.add('hidden');
+            el.playerNameInput.value = '';
+            showToast(`👑 ${cleanName} added to Global Hall of Fame!`);
+            // Reset game state to IDLE before showing leaderboard so closing leaderboard doesn't soft-lock
+            resetGame(false);
+            openLeaderboard();
+        });
+
+        el.playerNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                el.saveHofBtn.click();
+            }
+        });
+
+        el.skipHofBtn.addEventListener('click', () => {
+            el.hallOfFameModal.classList.add('hidden');
+            el.gameOverModal.classList.remove('hidden');
+        });
+
+        el.muteBtn.addEventListener('click', () => {
+            const isMuted = sfx.toggleMute();
+            el.soundOnIcon.classList.toggle('hidden', isMuted);
+            el.soundOffIcon.classList.toggle('hidden', !isMuted);
+        });
+
+        // Initialize on load
+        window.onload = () => {
+            resetGame(false);
+            setTimeout(() => {
+                if (el.welcomeNameInput) el.welcomeNameInput.focus();
+            }, 100);
+        };
+    </script>
+</body>
+</html>
